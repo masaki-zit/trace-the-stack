@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Day1 URLを打つと何が起きるのか</title>
+</head>
+<body>
+  <article>
+    <h1>Day1：URLを打つと何が起きるのか</h1>
+
+    <section>
+      <h2>今日のゴール</h2>
+      <p>
+        URL、Domain、DNS、IP、Browser初動、DNS Lookup、TTFBを、
+        概念ではなく、観測結果として説明できる状態にする。
+      </p>
+    </section>
+
+    <section>
+      <h2>1. URL構造を分解する</h2>
+      <p><code>https://example.com:443/products?id=10#detail</code></p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>項目</th>
+            <th>値</th>
+            <th>説明</th>
+            <th>通信先決定に使われるか</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>scheme</td>
+            <td>https</td>
+            <td>通信のプロトコルを規定。httpsかhttpが基本。</td>
+            <td>使われる</td>
+          </tr>
+          <tr>
+            <td>domain</td>
+            <td>example.com</td>
+            <td>DNSにてIPアドレスに変換される前のアドレス</td>
+            <td>使われる</td>
+          </tr>
+          <tr>
+            <td>port</td>
+            <td>443</td>
+            <td>サーバーのポートの指定</td>
+            <td>使われる</td>
+          </tr>
+          <tr>
+            <td>path</td>
+            <td>/products</td>
+            <td>サーバー内での資材や実行する処理の場所</td>
+            <td>使われない</td>
+          </tr>
+          <tr>
+            <td>query</td>
+            <td>id=10</td>
+            <td>処理などに渡す引数</td>
+            <td>使われない</td>
+          </tr>
+          <tr>
+            <td>fragment</td>
+            <td>detail</td>
+            <td>主にトップレベル遷移時に特定の場所項目を指すようにできる</td>
+            <td>使われない</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>ブラウザが何を見て通信先を決めるか</h3>
+      <p>domainを見て通信先サーバーを決めて、portを見てサーバーのポートを決定、pathの位置にリクエストを投げる。</p>
+    </section>
+
+    <section>
+      <h2>2. DNS観測</h2>
+
+      <h3>nslookup</h3>
+      <pre><code>nslookup google.com</code></pre>
+      <dl>
+        <dt>A record</dt>
+        <dd>
+            Name:   google.com
+            Address: 142.250.23.138
+            Name:   google.com
+            Address: 142.250.23.139
+            Name:   google.com
+            Address: 142.250.23.100
+            Name:   google.com
+            Address: 142.250.23.102
+            Name:   google.com
+            Address: 142.250.23.101
+            Name:   google.com
+            Address: 142.250.23.113
+            Name:   google.com
+            Address: 2404:6800:400b:c006::8a
+            Name:   google.com
+            Address: 2404:6800:400b:c006::8b
+            Name:   google.com
+            Address: 2404:6800:400b:c006::71
+            Name:   google.com
+            Address: 2404:6800:400b:c006::64
+        </dd>
+
+        <dt>TTL</dt>
+        <dd>1503</dd>
+
+        <dt>権威サーバ</dt>
+        <dd>
+            Non-authoritative answer:
+        </dd>
+
+        <dt>IPが複数返ってきたか</dt>
+        <dd>返ってきた</dd>
+      </dl>
+
+      <h3>dig</h3>
+      <pre><code>dig google.com</code></pre>
+      <dl>
+        <dt>A record</dt>
+        <dd>
+            ;; ANSWER SECTION:
+            google.com.		300	IN	A	142.250.23.101
+            google.com.		300	IN	A	142.250.23.139
+            google.com.		300	IN	A	142.250.23.102
+            google.com.		300	IN	A	142.250.23.113
+            google.com.		300	IN	A	142.250.23.138
+            google.com.		300	IN	A	142.250.23.100
+        </dd>
+
+        <dt>TTL</dt>
+        <dd>300秒</dd>
+
+        <dt>権威サーバ</dt>
+        <dd>
+            google.com.		114731	IN	NS	ns2.google.com.
+            google.com.		114731	IN	NS	ns1.google.com.
+            google.com.		114731	IN	NS	ns3.google.com.
+            google.com.		114731	IN	NS	ns4.google.com.
+        </dd>
+
+        <dt>IPが複数返ってきたか</dt>
+        <dd>返ってくる</dd>
+      </dl>
+    </section>
+
+    <section>
+      <h2>3. Chrome DevTools観測</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>URL</th>
+            <th>Queueing</th>
+            <th>DNS Lookup</th>
+            <th>Initial connection</th>
+            <th>SSL</th>
+            <th>Request sent</th>
+            <th>TTFB</th>
+            <th>Content download</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>https://google.com</td>
+            <td>0.70ms</td>
+            <td>記載なし(cacheを使用？)</td>
+            <td>0.37ms</td>
+            <td>記載なし</td>
+            <td>0.30ms</td>
+            <td>164.56ms</td>
+            <td>4.79ms</td>
+          </tr>
+          <tr>
+            <td>https://youtube.com</td>
+            <td>時間短縮のため省略</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>DNSやSSLが出なかった理由</h3>
+      <p>今回の観測では、DNS LookupやSSLが表示されないことがあった。</p>
+
+      <h4>1. DNS Cache</h4>
+      <p>
+        最有力の理由。ブラウザまたはOSのDNSキャッシュが使われた場合、
+        DNS問い合わせ自体が発生しないため、DNS Lookupの時間が表示されない。
+      </p>
+
+      <h4>2. Connection Reuse</h4>
+      <p>
+        Chromeはkeep-aliveにより、既存のTCP接続やTLS接続を再利用する。
+        そのため、リクエストごとにDNS LookupやSSLが発生するとは限らない。
+      </p>
+
+      <h4>3. HTTP/2 multiplexing</h4>
+      <p>
+        HTTP/2では、1つのコネクション上で複数のRequestを扱える。
+        つまり、現代のWebでは「RequestごとにTCP接続する」とは限らない。
+      </p>
+    </section>
+
+    <section>
+      <h2>4. Explain：URL入力からHTTP Request送信まで</h2>
+      <ul>
+        <li>URLを解析し、どのサーバーのどのデータにどのプロトコルで通信を送るかを特定する</li>
+        <li>IPアドレスの名前解決</li>
+        <li>TCPコネクションを確立 & TLSハンドシェイク</li>
+        <li>リクエストヘッダーなどを含むHTTPリクエストの作成</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>DoD</h2>
+      <ul>
+        <li>DNSは何をしているか：</li>
+        <li>なぜIPが必要か：</li>
+        <li>URLのどの部分が通信に使われるか：</li>
+        <li>DevToolsのTimingに何が出ているか：</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>最後に投げるもの</h2>
+
+      <h3>観測結果</h3>
+      <p>digとnslookupで表示されるデータ量の違い。</p>
+
+      <h3>気づいたこと</h3>
+      <p>DNSサーバーとの通信は今回の学習で学んだが、DNSサーバー間での挙動への理解は足りていない。</p>
+
+      <h3>わからなかったこと</h3>
+      <p>開発者ツールでDNS LookupやSSLの時間が記載されていなかったこと</p>
+    </section>
+  </article>
+</body>
+</html>
